@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base href="$FLUTTER_BASE_HREF">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Flyk - Voice-to-text idea capture app">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Flyk">
+
+  <title>Flyk</title>
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0F0F0F;
+      color: #FFFFFF;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      background-color: #0F0F0F;
+      color: #FFFFFF;
+    }
+    .spinner {
+      border: 3px solid #1A1A1A;
+      border-top: 3px solid #6366F1;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin-bottom: 16px;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div>Loading Flyk...</div>
+  </div>
+
+  <script>
+    var serviceWorkerVersion = null;
+    console.log('[Flyk] Setting up scripts...');
+  </script>
+  <script src="flutter.js" 
+          onload="console.log('[Flyk] flutter.js loaded'); console.log('[Flyk] _flutter after load:', typeof _flutter);"
+          onerror="console.error('[Flyk] ERROR: Failed to load flutter.js');"></script>
+  <script src="flutter_service_worker.js?v=1234567890"
+          onload="console.log('[Flyk] Service worker loaded');"
+          onerror="console.error('[Flyk] ERROR: Failed to load service worker');"></script>
+  <script>
+    window.addEventListener('load', function(ev) {
+      console.log('[Flyk] Window loaded');
+      console.log('[Flyk] Checking for _flutter:', typeof _flutter);
+      console.log('[Flyk] Checking for window._flutter:', typeof window._flutter);
+      
+      function waitForFlutter(retries) {
+        retries = retries || 0;
+        if (retries > 100) {
+          console.error('[Flyk] _flutter never appeared after 10 seconds');
+          console.error('[Flyk] Available window properties:', Object.keys(window).filter(k => k.toLowerCase().includes('flutter')));
+          document.getElementById('loading').innerHTML = 
+            '<div style="text-align:center;padding:20px;"><h2>Flutter Engine Not Found</h2><p>flutter.js loaded but _flutter not defined.</p><p>Check Network tab - is flutter.js loading?</p></div>';
+          return;
+        }
+        
+        if (typeof _flutter !== 'undefined' && _flutter.loader) {
+          console.log('[Flyk] _flutter found! Loading app...');
+          _flutter.loader.loadEntrypoint({
+            serviceWorker: {
+              serviceWorkerVersion: serviceWorkerVersion,
+            },
+            onEntrypointLoaded: function(engineInitializer) {
+              console.log('[Flyk] Entrypoint loaded, initializing engine...');
+              engineInitializer.initializeEngine().then(function(appRunner) {
+                console.log('[Flyk] Engine initialized, running app...');
+                document.getElementById('loading').style.display = 'none';
+                appRunner.runApp();
+                console.log('[Flyk] App running!');
+              }).catch(function(error) {
+                console.error('[Flyk] Engine initialization error:', error);
+                document.getElementById('loading').innerHTML = 
+                  '<div style="text-align:center;padding:20px;"><h2>Error</h2><p>' + error + '</p></div>';
+              });
+            }
+          });
+        } else {
+          if (retries % 10 === 0) {
+            console.log('[Flyk] Waiting for _flutter... attempt', retries, 'typeof:', typeof _flutter);
+          }
+          setTimeout(function() { waitForFlutter(retries + 1); }, 100);
+        }
+      }
+      
+      // Wait a bit for scripts to execute
+      setTimeout(function() { waitForFlutter(); }, 200);
+    });
+  </script>
+</body>
+</html>
