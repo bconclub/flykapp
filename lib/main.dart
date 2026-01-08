@@ -6,51 +6,41 @@ import 'services/hive_service.dart';
 import 'screens/main_navigation.dart';
 import 'theme/app_theme.dart';
 
-void main() async {
+void main() {
   print('[Flyk] main() called');
   WidgetsFlutterBinding.ensureInitialized();
   print('[Flyk] WidgetsFlutterBinding initialized');
   
-  // Initialize Supabase (non-blocking)
-  try {
-    print('[Flyk] Initializing Supabase...');
-    await Supabase.initialize(
-      url: SupabaseConfig.supabaseUrl,
-      anonKey: SupabaseConfig.supabaseAnonKey,
-    );
-    print('[Flyk] Supabase initialized successfully');
-    debugPrint('Supabase initialized');
-  } catch (e, stackTrace) {
-    print('[Flyk] Supabase initialization error: $e');
-    print('[Flyk] Stack trace: $stackTrace');
-    debugPrint('Supabase initialization error: $e');
-    // Continue anyway - app will work offline
-  }
+  // Run app immediately, initialize services in background
+  print('[Flyk] Running app...');
+  runApp(const FlykApp());
+  print('[Flyk] runApp() called');
   
-  // Initialize Hive in background (non-blocking for web)
+  // Initialize Supabase in background (non-blocking)
+  Future.microtask(() async {
+    try {
+      print('[Flyk] Initializing Supabase...');
+      await Supabase.initialize(
+        url: SupabaseConfig.supabaseUrl,
+        anonKey: SupabaseConfig.supabaseAnonKey,
+      );
+      print('[Flyk] Supabase initialized successfully');
+    } catch (e) {
+      print('[Flyk] Supabase error: $e');
+    }
+  });
+  
+  // Initialize Hive in background
   Future.microtask(() async {
     try {
       print('[Flyk] Initializing Hive...');
       final hiveService = HiveService();
       await hiveService.init();
       print('[Flyk] Hive initialized successfully');
-      debugPrint('Hive initialized');
-    } catch (e, stackTrace) {
-      print('[Flyk] Hive initialization error: $e');
-      print('[Flyk] Stack trace: $stackTrace');
-      debugPrint('Hive initialization error: $e');
-      // Continue anyway - web doesn't fully support Hive
+    } catch (e) {
+      print('[Flyk] Hive error: $e');
     }
   });
-  
-  SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
-  
-  print('[Flyk] Running app...');
-  runApp(const FlykApp());
-  print('[Flyk] runApp() called');
 }
 
 class FlykApp extends StatelessWidget {
